@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adversarial ML Attacks & Defense in Cybersecurity</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg-primary:#0a0e1a;--bg-secondary:#0f172a;--bg-card:rgba(15,23,42,0.7);
+  --accent:#06b6d4;--accent2:#3b82f6;--accent3:#8b5cf6;--accent4:#10b981;
+  --text-primary:#f1f5f9;--text-secondary:#94a3b8;--text-dim:#475569;
+  --border:rgba(6,182,212,0.15);--glow:rgba(6,182,212,0.3);
+}
+html{font-size:16px;scroll-behavior:smooth}
+body{font-family:'Manrope',sans-serif;background:var(--bg-primary);color:var(--text-primary);overflow:hidden;height:100vh;width:100vw}
+
+/* Canvas Background */
+#bgCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
+
+/* Presentation Container */
+.pres-container{position:relative;z-index:1;width:100vw;height:100vh;overflow:hidden}
+.slide{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:60px 80px;opacity:0;transform:translateX(60px);transition:all 0.6s cubic-bezier(0.16,1,0.3,1);pointer-events:none;overflow-y:auto}
+.slide.active{opacity:1;transform:translateX(0);pointer-events:all}
+.slide.exit-left{opacity:0;transform:translateX(-60px)}
+
+/* Top Bar */
+.top-bar{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;justify-content:space-between;align-items:center;padding:16px 32px;background:rgba(10,14,26,0.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.top-bar .logo{font-size:13px;font-weight:600;color:var(--accent);letter-spacing:0.5px}
+.top-bar .slide-counter{font-size:13px;color:var(--text-secondary);font-weight:500}
+.progress-bar{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent3));z-index:101;transition:width 0.4s ease;border-radius:0 2px 2px 0}
+
+/* Navigation */
+.nav-btn{position:fixed;top:50%;transform:translateY(-50%);z-index:100;width:48px;height:48px;border-radius:50%;background:rgba(15,23,42,0.8);border:1px solid var(--border);color:var(--accent);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.3s;backdrop-filter:blur(8px)}
+.nav-btn:hover{background:rgba(6,182,212,0.15);border-color:var(--accent);box-shadow:0 0 20px var(--glow)}
+.nav-btn.prev{left:20px}
+.nav-btn.next{right:20px}
+.nav-btn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* Notes Toggle */
+.notes-toggle{position:fixed;bottom:20px;right:20px;z-index:100;padding:8px 16px;border-radius:8px;background:rgba(15,23,42,0.9);border:1px solid var(--border);color:var(--text-secondary);font-size:12px;font-weight:500;cursor:pointer;transition:all 0.3s;font-family:'Manrope',sans-serif}
+.notes-toggle:hover{border-color:var(--accent);color:var(--accent)}
+.notes-panel{position:fixed;bottom:60px;right:20px;z-index:100;width:380px;max-height:250px;padding:16px 20px;border-radius:12px;background:rgba(15,23,42,0.95);border:1px solid var(--border);backdrop-filter:blur(12px);font-size:13px;color:var(--text-secondary);line-height:1.6;overflow-y:auto;display:none;box-shadow:0 20px 40px rgba(0,0,0,0.5)}
+.notes-panel.visible{display:block}
+.notes-panel strong{color:var(--accent);font-weight:600}
+
+/* Typography */
+.slide-title{font-size:clamp(28px,4vw,48px);font-weight:700;line-height:1.15;letter-spacing:-0.03em;margin-bottom:12px;background:linear-gradient(135deg,#fff 0%,var(--accent) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-align:center;width:100%}
+.slide-subtitle{font-size:clamp(14px,1.5vw,18px);color:var(--text-secondary);font-weight:400;text-align:center;max-width:700px;line-height:1.6;margin-bottom:40px}
+.section-label{font-size:11px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.section-label::before{content:'';width:24px;height:2px;background:var(--accent);border-radius:1px}
+
+/* Cards */
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:28px;backdrop-filter:blur(8px);transition:all 0.3s}
+.card:hover{border-color:rgba(6,182,212,0.35);transform:translateY(-2px);box-shadow:0 12px 40px rgba(6,182,212,0.08)}
+.card-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-size:22px}
+.card-title{font-size:16px;font-weight:700;margin-bottom:8px;color:var(--text-primary)}
+.card-text{font-size:13px;color:var(--text-secondary);line-height:1.6}
+
+/* Grid */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:24px;width:100%;max-width:1100px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;width:100%;max-width:1100px}
+.grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:20px;width:100%;max-width:1100px}
+
+/* Tables */
+.data-table{width:100%;border-collapse:collapse;font-size:12px;max-width:1100px}
+.data-table thead{background:rgba(6,182,212,0.1)}
+.data-table th{padding:12px 14px;text-align:left;font-weight:700;color:var(--accent);border-bottom:2px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:0.05em}
+.data-table td{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--text-secondary);line-height:1.5}
+.data-table tr:hover td{background:rgba(6,182,212,0.03);color:var(--text-primary)}
+.data-table td:first-child{color:var(--text-primary);font-weight:600}
+
+/* Flowchart */
+.flow-container{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;max-width:1100px}
+.flow-step{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px 18px;text-align:center;min-width:120px;position:relative;transition:all 0.3s}
+.flow-step:hover{border-color:var(--accent);box-shadow:0 0 20px var(--glow)}
+.flow-step .step-num{font-size:10px;font-weight:700;color:var(--accent);letter-spacing:0.1em;margin-bottom:4px}
+.flow-step .step-label{font-size:12px;font-weight:600;color:var(--text-primary)}
+.flow-arrow{color:var(--accent);font-size:18px;flex-shrink:0;opacity:0.6}
+
+/* Stat Cards */
+.stat-card{text-align:center;padding:24px}
+.stat-value{font-size:clamp(28px,3vw,42px);font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
+.stat-label{font-size:12px;color:var(--text-secondary);font-weight:500}
+
+/* Chart Container */
+.chart-container{position:relative;width:100%;max-width:900px;margin:0 auto}
+.chart-container canvas{max-height:380px}
+
+/* Tag/Badge */
+.tag{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600}
+.tag-cyan{background:rgba(6,182,212,0.12);color:#22d3ee;border:1px solid rgba(6,182,212,0.2)}
+.tag-blue{background:rgba(59,130,246,0.12);color:#60a5fa;border:1px solid rgba(59,130,246,0.2)}
+.tag-purple{background:rgba(139,92,246,0.12);color:#a78bfa;border:1px solid rgba(139,92,246,0.2)}
+.tag-green{background:rgba(16,185,129,0.12);color:#34d399;border:1px solid rgba(16,185,129,0.2)}
+.tag-red{background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.2)}
+
+/* Highlight Box */
+.highlight-box{background:linear-gradient(135deg,rgba(6,182,212,0.08),rgba(59,130,246,0.05));border:1px solid var(--border);border-radius:16px;padding:24px 32px;width:100%;max-width:900px;text-align:center}
+.highlight-box p{font-size:15px;line-height:1.8;color:var(--text-secondary)}
+.highlight-box strong{color:var(--accent)}
+
+/* Attack Card */
+.attack-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:20px;transition:all 0.3s;position:relative;overflow:hidden}
+.attack-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0}
+.attack-card.fgsm::before{background:linear-gradient(90deg,#ef4444,#f97316)}
+.attack-card.pgd::before{background:linear-gradient(90deg,#f97316,#eab308)}
+.attack-card.cw::before{background:linear-gradient(90deg,#8b5cf6,#ec4899)}
+.attack-card.df::before{background:linear-gradient(90deg,#06b6d4,#3b82f6)}
+.attack-card.gan::before{background:linear-gradient(90deg,#10b981,#06b6d4)}
+.attack-card:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,0,0,0.3)}
+.attack-name{font-size:15px;font-weight:700;margin-bottom:6px}
+.attack-formula{font-family:'Courier New',monospace;font-size:12px;color:var(--accent);background:rgba(6,182,212,0.08);padding:6px 10px;border-radius:6px;margin:8px 0;display:inline-block}
+.attack-desc{font-size:12px;color:var(--text-secondary);line-height:1.5}
+
+/* Defense Card */
+.defense-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:24px;transition:all 0.3s}
+.defense-card:hover{border-color:rgba(16,185,129,0.35);transform:translateY(-2px)}
+.defense-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;font-size:20px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2)}
+.defense-title{font-size:15px;font-weight:700;margin-bottom:6px}
+.defense-desc{font-size:12px;color:var(--text-secondary);line-height:1.6}
+
+/* Mockup */
+.mockup-frame{background:rgba(15,23,42,0.9);border:1px solid var(--border);border-radius:12px;overflow:hidden;width:100%}
+.mockup-topbar{display:flex;align-items:center;gap:6px;padding:10px 14px;background:rgba(0,0,0,0.3);border-bottom:1px solid var(--border)}
+.mockup-dot{width:8px;height:8px;border-radius:50%}
+.mockup-body{padding:24px;min-height:200px}
+
+/* Bullet List */
+.bullet-list{list-style:none;width:100%;max-width:800px}
+.bullet-list li{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.03);font-size:14px;color:var(--text-secondary);line-height:1.6}
+.bullet-list li:last-child{border:none}
+.bullet-list li .bullet{width:6px;height:6px;border-radius:50%;background:var(--accent);margin-top:8px;flex-shrink:0}
+
+/* Keyboard hint */
+.key-hint{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:100;font-size:11px;color:var(--text-dim);display:flex;gap:16px;align-items:center}
+.key-hint kbd{padding:2px 8px;border-radius:4px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);font-family:'Manrope',sans-serif;font-size:11px;color:var(--text-secondary)}
+
+/* Animations */
+@keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse-glow{0%,100%{box-shadow:0 0 20px rgba(6,182,212,0.2)}50%{box-shadow:0 0 40px rgba(6,182,212,0.4)}}
+.animate-in{animation:fadeInUp 0.6s ease-out both}
+.delay-1{animation-delay:0.1s}.delay-2{animation-delay:0.2s}.delay-3{animation-delay:0.3s}.delay-4{animation-delay:0.4s}.delay-5{animation-delay:0.5s}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(6,182,212,0.2);border-radius:2px}
+
+/* Responsive */
+@media(max-width:900px){
+  .slide{padding:60px 30px}
+  .grid-3,.grid-4{grid-template-columns:1fr 1fr}
+  .flow-container{flex-direction:column}
+  .flow-arrow{transform:rotate(90deg)}
+}
+@media(max-width:600px){
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr}
+  .slide{padding:70px 20px}
+  .notes-panel{width:calc(100vw - 40px);right:20px}
+}
+</style>
+</head>
+<body>
+
+<canvas id="bgCanvas"></canvas>
+
+<!-- Progress Bar -->
+<div class="progress-bar" id="progressBar" style="width:0%"></div>
+
+<!-- Top Bar -->
+<div class="top-bar">
+  <div class="logo">🛡️ Adversarial ML in Cybersecurity</div>
+  <div class="slide-counter" id="slideCounter">01 / 23</div>
+</div>
+
+<!-- Navigation -->
+<button class="nav-btn prev" onclick="changeSlide(-1)">
+  <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+</button>
+<button class="nav-btn next" onclick="changeSlide(1)">
+  <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+</button>
+
+<!-- Notes Toggle -->
+<button class="notes-toggle" onclick="toggleNotes()">📝 Notes</button>
+<div class="notes-panel" id="notesPanel"></div>
+
+<!-- Keyboard Hint -->
+<div class="key-hint">
+  <span><kbd>←</kbd> <kbd>→</kbd> Navigate</span>
+  <span><kbd>N</kbd> Notes</span>
+</div>
+
+<!-- ==================== SLIDES ==================== -->
+<div class="pres-container" id="presContainer">
+
+<!-- SLIDE 1: Title -->
+<div class="slide active" data-notes="<strong>Viva Tip:</strong> Start with confidence. State the title clearly, introduce yourself and your guide. Mention this is a major research project focused on the intersection of AI and cybersecurity.">
+  <div style="text-align:center;max-width:900px">
+    <div class="section-label animate-in">Major Research Project</div>
+    <h1 class="slide-title animate-in delay-1" style="font-size:clamp(26px,3.8vw,52px);line-height:1.2;margin-bottom:28px">
+      Adversarial Machine Learning<br>Attacks and Defense Mechanisms<br>in Cybersecurity Applications
+    </h1>
+    <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-bottom:36px" class="animate-in delay-2">
+      <span class="tag tag-cyan">🤖 Machine Learning</span>
+      <span class="tag tag-blue">🔒 Cybersecurity</span>
+      <span class="tag tag-purple">⚡ Adversarial Attacks</span>
+      <span class="tag tag-green">🛡️ Defense Mechanisms</span>
+    </div>
+    <div class="animate-in delay-3" style="font-size:14px;color:var(--text-secondary);line-height:2">
+      <div><strong style="color:var(--text-primary)">Students:</strong> Arjun Mehta &bull; Sneha Reddy &bull; Rahul Verma</div>
+      <div><strong style="color:var(--text-primary)">Guide:</strong> Dr. Kavita Sharma, Associate Professor</div>
+      <div><strong style="color:var(--text-primary)">Department of Computer Science & Engineering</strong></div>
+      <div>National Institute of Technology, Delhi</div>
+    </div>
+    <div class="animate-in delay-4" style="margin-top:30px;font-size:12px;color:var(--text-dim)">Academic Year 2024–2025</div>
+  </div>
+</div>
+
+<!-- SLIDE 2: Introduction -->
+<div class="slide" data-notes="<strong>Viva Tip:</strong> Explain how ML is now the backbone of modern security systems. Then pivot to the problem — these ML models can be fooled. Use the analogy: 'Just like spam filters can be bypassed, AI security systems can be tricked.'">
+  <div class="section-label animate-in">01 — Introduction</div>
+  <h2 class="slide-title animate-in delay-1">Machine Learning meets Cybersecurity</h2>
+  <p class="slide-subtitle animate-in delay-2">AI-powered security systems are the new frontline — but they come with their own vulnerabilities</p>
+  <div class="grid-3 animate-in delay-3">
+    <div class="card">
+      <div class="card-icon" style="background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.2)">🔍</div>
+      <div class="card-title">ML in Cybersecurity</div>
+      <div class="card-text">Machine learning models now power intrusion detection, malware classification, phishing detection, and network anomaly identification across enterprises.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon" style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2)">🤖</div>
+      <div class="card-title">AI-Driven Defense</div>
+      <div class="card-text">Organizations are rapidly shifting from rule-based to AI-based security because ML can detect zero-day threats and patterns that static rules simply cannot catch.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2)">⚠️</div>
+      <div class="card-title">The Adversarial Problem</div>
+      <div class="card-text">But ML models are vulnerable to adversarial attacks — carefully crafted inputs that look normal to humans but fool the model into making wrong predictions.</div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 3: Problem Statement -->
+<div class="slide" data-notes="<strong>Viva Tip:</strong> Emphasize the gap: models perform great in lab conditions but fail under adversarial conditions. This is the core problem your project addresses.">
+  <div class="section-label animate-in">02 — Problem Statement</div>
+  <h2 class="slide-title animate-in delay-1">The Robustness Gap</h2>
+  <p class="slide-subtitle animate-in delay-2">ML models achieve high accuracy on clean data — but adversarial inputs can devastate their performance</p>
+  <div class="grid-2 animate-in delay-3" style="align-items:start">
+    <div>
+      <div class="card" style="margin-bottom:20px;border-color:rgba(16,185,129,0.2)">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <span style="font-size:28px">✅</span>
+          <div class="card-title" style="color:#34d399;margin:0">On Clean Data</div>
+        </div>
+        <div class="card-text">ML models achieve 95-99% accuracy on standard test sets. Intrusion detection, malware classification, and phishing detection all perform impressively in controlled settings.</div>
+      </div>
+      <div class="card" style="border-color:rgba(239,68,68,0.2)">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <span style="font-size:28px">❌</span>
+          <div class="card-title" style="color:#f87171;margin:0">Under Adversarial Attack</div>
+        </div>
+        <div class="card-text">Accuracy can drop by 40-70% when attackers manipulate inputs with imperceptible perturbations. Existing cybersecurity systems lack adversarial robustness.</div>
+      </div>
+    </div>
+    <div class="highlight-box" style="display:flex;flex-direction:column;justify-content:center;height:100%">
+      <p style="font-size:18px;font-weight:700;color:var(--text-primary);margin-bottom:12px">Core Problem</p>
+      <p>Current ML-based cybersecurity systems are <strong>not designed to withstand adversarial manipulation</strong>. Attackers can craft inputs that evade detection entirely, making AI-powered security unreliable under real-world adversarial conditions.</p>
+      <div style="margin-top:20px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <span class="tag tag-red">Accuracy Drop up to 70%</span>
+        <span class="tag tag-red">Evasion Attacks</span>
+        <span class="tag tag-red">No Adaptive Defense</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 4: Objectives -->
+<div class="slide" data-notes="<strong>Viva Tip:</strong> List objectives clearly. Emphasize that your project covers the full pipeline — from studying attacks to building a working web application with defenses.">
+  <div class="section-label animate-in">03 — Objectives</div>
+  <h2 class="slide-title animate-in delay-1">Project Objectives</h2>
+  <p class="slide-subtitle animate-in delay-2">A systematic approach to understanding and defending against adversarial threats in cybersecurity</p>
+  <div class="grid-2 animate-in delay-3" style="max-width:900px">
+    <div class="card" style="display:flex;gap:16px;align-items:flex-start">
+      <div style="width:40px;height:40px;border-radius:10px;background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;color:var(--accent);font-size:16px">01</div>
+      <div><div class="card-title">Study Adversarial Attacks</div><div class="card-text">Comprehensive study of FGSM, PGD, CW, DeepFool, and GAN-based attacks on cybersecurity ML models</div></div>
+    </div>
+    <div class="card" style="display:flex;gap:16px;align-items:flex-start">
+      <div style="width:40px;height:40px;border-radius:10px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;color:#60a5fa;font-size:16px">02</div>
+      <div><div class="card-title">Evaluate Impact</div><div class="card-text">Quantitatively evaluate how adversarial attacks degrade model performance across IDS, malware, and phishing domains</div></div>
+    </div>
+    <div class="card" style="display:flex;gap:16px;align-items:flex-start">
+      <div style="width:40px;height:40px;border-radius:10px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;color:#a78bfa;font-size:16px">03</div>
+      <div><div class="card-title">Compare Defense Mechanisms</div><div class="card-text">Compare adversarial training, feature squeezing, gradient masking, and dynamic defense rotation for robustness</div></div>
+    </div>
+    <div class="card" style="display:flex;gap:16px;align-items:flex-start">
+      <div style="width:40px;height:40px;border-radius:10px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:800;color:#34d399;font-size:16px">04</div>
+      <div><div class="card-title">Develop Secure Web System</div><div class="card-text">Build a web-based application integrating models with adversarial demo mode and defense deployment</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 5: Research Motivation -->
+<div class="slide" data-notes="<strong>Viva Tip:</strong> Explain why this matters NOW. Cyber attacks are increasing, AI adoption is growing, but adversarial robustness is still an afterthought. Your project bridges this gap.">
+  <div class="section-label animate-in">04 — Research Motivation</div>
+  <h2 class="slide-title animate-in delay-1">Why This Matters Now</h2>
+  <p class="slide-subtitle animate-in delay-2">The convergence of rising cyber threats and AI dependency creates an urgent need for adversarial robustness</p>
+  <div class="grid-3 animate-in delay-3">
+    <div class="card" style="text-align:center">
+      <div style="font-size:48px;margin-bottom:16px">📈</div>
+      <div class="stat-value">380K+</div>
+      <div class="stat-label">New malware daily (AV-TEST Institute)</div>
+      <div class="card-text" style="margin-top:12px">Cyber threats are growing exponentially, making AI-based detection not just useful but essential for real-time protection.</div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div style="font-size:48px;margin-bottom:16px">🤖</div>
+      <div class="stat-value">91%</div>
+      <div class="stat-label">Organizations using AI security (Capgemini)</div>
+      <div class="card-text" style="margin-top:12px">Most enterprises now depend on ML for threat detection. But these models were never designed to handle adversarial inputs.</div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div style="font-size:48px;margin-bottom:16px">🛡️</div>
+      <div class="stat-value">&lt;5%</div>
+      <div class="stat-label">Systems with adversarial defense</div>
+      <div class="card-text" style="margin-top:12px">Almost no production security systems currently incorporate adversarial robustness — a massive and dangerous gap.</div>
+    </div>
+  </div>
+  <div class="highlight-box animate-in delay-4" style="margin-top:24px">
+    <p>The gap between <strong>AI adoption in security</strong> and <strong>adversarial robustness</strong> is widening. This project directly addresses this critical vulnerability.</p>
+  </div>
+</div>
+
+<!-- SLIDE 6: Literature Review -->
+<div class="slide" data-notes="<strong>Viva Tip:</strong> Walk through the table row by row. Highlight that most papers focus on one domain (images), and cybersecurity adversarial research is still emerging. That's the gap you're filling.">
+  <div class="section-label animate-in">05 — Literature Review</div>
+  <h2 class="slide-title animate-in delay-1">Related Work</h2>
+  <p class="slide-subtitle animate-in delay-2">Comparative analysis of existing research on adversarial attacks and defenses</p>
+  <div class="animate-in delay-3" style="width:100%;max-width:1100px;overflow-x:auto">
+    <table class="data-table">
+      <thead>
+        <tr><th>Author (Year)</th><th>Attack / Defense</th><th>Dataset</th><th>Key Finding</th><th>Limitation</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Goodfellow et al. (2015)</td><td><span class="tag tag-red">FGSM Attack</span></td><td>ImageNet</td><td>Linear perturbations can fool DNNs effectively</td><td>Image domain only; not tested on security data</td></tr>
+        <tr><td>Madry et al. (2018)</td><td><span class="tag tag-red">PGD Attack</span></td><td>MNIST/CIFAR</td><td>PGD is the universal first-order adversary</td><td>High computational cost; limited to vision</td></tr>
+        <tr><td>Carlini & Wagner (2017)</td><td><span class="tag tag-red">CW Attack</span></td><td>ImageNet</td><td>Optimization-based attacks defeat defensive distillation</td><td>Complex optimization; slow generation</td></tr>
+        <tr><td>Rosenberg et al. (2021)</td><td><span class="tag tag-cyan">GAN Attack on Malware</span></td><td>EMBER</td><td>GANs can generate evasive malware samples</td><td>Black-box only; limited feature space</td></tr>
+        <tr><td>Demontis et al. (2019)</td><td><span class="tag tag-green">Adversarial Training</span></td><td>Android Malware</td><td>Feature squeezing improves robustness partially</td><td>Accuracy-robustness tradeoff</td></tr>
+        <tr><td>Chen et al. (2022)</td><td><span class="tag tag-green">Robust Ensembling</span></td><td>NSL-KDD</td><td>Ensemble methods reduce attack success rate</td><td>Static defense; adaptive attacks bypass</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="animate-in delay-4" style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
+    <span class="tag tag-cyan">Gap: Most work is image-domain</span>
+    <span class="tag tag-purple">Gap: No multi-domain comparison</span>
+    <span class="tag tag-green">Gap: Static defenses are insufficient</span>
+  </div>
+</div>
+
+<!-- SLIDE 7: System Architecture -->
+<div class="slide" data-notes="<strong>Viva Tip:</strong> Walk through the flowchart left to right. Emphasize this is an end-to-end pipeline — from data to deployed web app. The defense rotation is your novel contribution.">
+  <div class="section-label animate-in">06 — Proposed System</div>
+  <h2 class="slide-title animate-in delay-1">System Architecture</h2>
+  <p class="slide-subtitle animate-in delay-2">End-to-end pipeline from data collection to secure web application deployment</p>
+  <div class="flow-container animate-in delay-3">
+    <div class="flow-step"><div class="step-num">STEP 1</div><div class="step-label">📥 Data Collection</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step"><div class="step-num">STEP 2</div><div class="step-label">🧹 Preprocessing</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step"><div class="step-num">STEP 3</div><div class="step-label">🧠 Model Training</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color:rgba(239,68,68,0.3)"><div class="step-num" style="color:#f87171">STEP 4</div><div class="step-label">⚡ Adversarial Attack</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step"><div class="step-num">STEP 5</div><div class="step-label">📊 Evaluation</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color:rgba(16,185,129,0.3)"><div class="step-num" style="color:#34d399">STEP 6</div><div class="step-label">🛡️ Defense Mechanism</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color:rgba(59,130,246,0.3)"><div class="step-num" style="color:#60a5fa">STEP 7</div><div class="step-label">🌐 Web Application</div></div>
+  </div>
+  <div class="grid-3 animate-in delay-4" style="margin-top:32px">
+    <div class="card" style="text-align:center;padding:18px">
+      <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:4px">Three Domains</div>
+      <div style="font-size:12px;color:var(--text-secondary)">Intrusion Detection • Malware • Phishing</div>
+    </div>
+    <div class="card" style="text-align:center;padding:18px">
+      <div style="font-size:13px;font-weight:700;color:#f87171;margin-bottom:4px">Five Attack Methods</div>
+      <div style="font-size:12px;color:var(--text-secondary)">FGSM • PGD • CW • DeepFool • GAN</div>
+    </div>
+    <div class="card" style="text-align:center;padding:18px">
+      <div style="font-size:13px;font-weight:700;color:#34d399;margin-bottom:4px">Four Defense Strategies</div>
+      <div style="font-size:12px;color:var(--text-secondary)">Adv. Training • Feat. Squeeze • Grad. Mask • DDR</div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 8: Datasets -->
+<div class="slide" data-notes="<strong>Viva Tip:</strong> Explain why these three datasets were chosen — each represents a different cybersecurity domain. NSL-KDD is the classic IDS benchmark, EMBER is modern malware, and the phishing dataset covers social engineering.">
+  <div class="section-label animate-in">07 — Datasets</div>
+  <h2 class="slide-title animate-in delay-1">Datasets Used</h2>
+  <p class="slide-subtitle animate-in delay-2">Three benchmark datasets covering the major cybersecurity domains</p>
+  <div class="grid-3 animate-in delay-3">
+    <div class="card" style="text-align:center">
+      <div style="font-size:36px;margin-bottom:12px">🌐</div>
+      <div class="card-title">NSL-KDD</div>
+      <div class="tag tag-cyan" style="margin-bottom:10px">Intrusion Detection</div>
+      <div class="card-text">Improved version of KDD Cup'99 dataset. 41 features, 4 attack categories: DoS, Probe, R2L, U2R. Standard benchmark for network IDS evaluation.</div>
+      <div style="margin-top:12px;font-size:12px;color:var(--accent)">~125K samples</div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div style="font-size:36px;margin-bottom:12px">🦠</div>
+      <div class="card-title">EMBER</div>
+      <div class="tag tag-purple" style="margin-bottom:10px">Malware Detection</div>
+      <div class="card-text">Ellen McLaurin & Brian Anderson dataset. 2,381 features from PE file headers, imports, sections. Contains both malicious and benign executables.</div>
+      <div style="margin-top:12px;font-size:12px;color:var(--accent)">~1.1M samples</div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div style="font-size:36px;margin-bottom:12px">📧</div>
+      <div class="card-title">Phishing Email</div>
+      <div class="tag tag-green" style="margin-bottom:10px">Phishing Detection</div>
+      <div class="card-text">Text-based dataset of phishing and legitimate emails. Used for NLP-based classification with BERT. Contains email headers, body text, and URLs.</div>
+      <div style="margin-top:12px;font-size:12px;color:var(--accent)">~18K samples</div>
+    </div>
+  </div>
+  <div class="animate-in delay-4" style="margin-top:24px;width:100%;max-width:1100px;overflow-x:auto">
+    <table class="data-table">
+      <thead><tr><th>Feature</th><th>NSL-KDD</th><th>EMBER</th><th>Phishing Email</th></tr></thead>
+      <tbody>
+        <tr><td>Domain</td><td>Network IDS</td><td>Malware Detection</td><td>Email Security</td></tr>
+        <tr><td>Data Type</td><td>Numeric + Categorical</td><td>Numeric (PE features)</td><td>Text (NLP)</td></tr>
+        <tr><td>Feature Count</td><td>41</td><td>2,381</td><td>Raw text</td></tr>
+        <tr><td>Class Balance</td><td>Imbalanced</td><td>Balanced</td><td>Moderate</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- SLIDE 9: Data Preprocessing -->
+<div class="slide" data-notes="<strong>Viva Tip:</strong> Briefly explain each step. SMOTE is important — mention it handles class imbalance. Feature selection reduces dimensionality which also helps against attacks.">
+  <div class="section-label animate-in">08 — Data Preprocessing</div>
+  <h2 class="slide-title animate-in delay-1">Preprocessing Pipeline</h2>
+  <p class="slide-subtitle animate-in delay-2">Transforming raw data into model-ready features with security-aware preprocessing</p>
+  <div class="grid-3 animate-in delay-3" style="max-width:1050px">
+    <div class="card" style="padding:20px">
+      <div style="font-size:24px;margin-bottom:8px">🔢</div>
+      <div class="card-title" style="font-size:14px">Label Encoding</div>
+      <div class="card-text">Categorical features (protocol type, service, flag) encoded using label encoding for IDS; one-hot for malware features.</div>
+    </div>
+    <div class="card" style="padding:20px">
+      <div style="font-size:24px;margin-bottom:8px">📏</div>
+      <div class="card-title" style="font-size:14px">Feature Scaling</div>
+      <div class="card-text">StandardScaler applied to normalize features to zero mean and unit variance. Essential for gradient-based models and attack generation.</div>
+    </div>
+    <div class="card" style="padding:20px">
+      <div style="font-size:24px;margin-bottom:8px">✂️</div>
+      <div class="card-title" style="font-size:14px">Tokenization</div>
+      <div class="card-text">BERT tokenizer applied for phishing email dataset. WordPiece tokenization with max sequence length of 512 tokens.</div>
+    </div>
+    <div class="card" style="padding:20px">
+      <div style="font-size:24px;margin-bottom:8px">⚖️</div>
+      <div class="card-title" style="font-size:14px">SMOTE</div>
+      <div class="card-text">Synthetic Minority Oversampling Technique applied to NSL-KDD to handle class imbalance. Generates synthetic samples for minority attack classes.</div>
+    </div>
+    <div class="card" style="padding:20px">
+      <div style="font-size:24px;margin-bottom:8px">🎯</div>
+      <div class="card-title" style="font-size:14px">Feature Selection</div>
+      <div class="card-text">Mutual information and correlation-based selection to reduce EMBER from 2,381 to 500 most relevant features. Reduces attack surface.</div>
+    </div>
+    <div class="card" style="padding:20px">
+      <div style="font-size:24px;margin-bottom:8px">🧪</div>
+      <div class="card-title" style="font-size:14px">Train/Test Split</div>
+      <div class="card-text">80-20 stratified split ensuring class distribution is maintained. Separate holdout set for adversarial evaluation.</div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 10: Models - CNN -->
+<div class="slide" data-notes="<strong>Viva Tip:</strong> For each model, explain WHY it was chosen for that domain. CNN is great for IDS because it can learn spatial patterns in network feature vectors.">
+  <div class="section-label animate-in">09 — Models Used</div>
+  <h2 class="slide-title animate-in delay-1">CNN for Intrusion Detection</h2>
+  <p class="slide-subtitle animate-in delay-2">1D Convolutional Neural Network trained on NSL-KDD for network intrusion classification</p>
+  <div class="grid-2 animate-in delay-3" style="max-width:1000px;align-items:start">
+    <div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">Architecture</div>
+        <div class="card-text" style="line-height:2">
+          🔹 Input Layer: 41 features<br>
+          🔹 Conv1D Block: 64 filters, kernel=3, ReLU<br>
+          🔹 MaxPooling1D: pool_size=2<br>
+          🔹 Conv1D Block: 128 filters, kernel=3, ReLU<br>
+          🔹 GlobalMaxPooling1D<br>
+          🔹 Dense: 64 units, Dropout(0.3)<br>
+          🔹 Output: Softmax (5 classes)
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <span class="tag tag-cyan">Dataset: NSL-KDD</span>
+        <span class="tag tag-blue">Epochs: 50</span>
+        <span class="tag tag-purple">Optimizer: Adam</span>
+      </div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">Baseline Performance (Clean Data)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="stat-card" style="padding:12px"><div class="stat-value" style="font-size:28px">97.8%</div><div class="stat-label">Accuracy</div></div>
+        <div class="stat-card" style="padding:12px"><div class="stat-value" style="font-size:28px">96.5%</div><div class="stat-label">Precision</div></div>
+        <div class="stat-card" style="padding:12px"><div class="stat-value" style="font-size:28px">97.1%</div><div class="stat-label">Recall</div></div>
+        <div class="stat-card" style="padding:12px"><div class="stat-value" style="font-size:28px">96.8%</div><div class="stat-label">F1-Score</div></div>
+      </div>
+      <div style="margin-top:12px;font-size:11px;color:var(--text-dim)">CNN effectively captures local feature patterns in network traffic data</div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 11: Models - Gradient Boosting -->
+<div class="slide" data-notes="<strong>Viva Tip:</strong> Gradient Boosting is chosen for malware because tabular PE features work better with tree-based models than deep learning. Mention XGBoost's proven track record on EMBER.">
+  <div class="section-label animate-in">10 — Models Used</div>
+  <h2 class="slide-title animate-in delay-1">Gradient Boosting for Malware Detection</h2>
+  <p class="slide-subtitle animate-in delay-2">XGBoost classifier trained on EMBER dataset for PE file malware classification</p>
+  <div class="grid-2 animate-in delay-3" style="max-width:1000px;align-items:start">
+    <div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">Configuration</div>
+        <div class="card-text" style="line-height:2">
+          🔹 Algorithm: XGBoost (Extreme Gradient Boosting)<br>
+          🔹 n_estimators: 500<br>
+          🔹 max_depth: 8<br>
+          🔹 learning_rate: 0.05<br>
+          🔹 subsample: 0.8<br>
+          🔹 colsample_bytree: 0.8<br>
+          🔹 Features: Top 500 selected from 2,381
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <span class="tag tag-cyan">Dataset: EMBER</span>
+        <span class="tag tag-green">Binary Classification</span>
+      </div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">Baseline Performance (Clean Data)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="stat-card" style="padding:12px"><div class="stat-value" style="font-size:28px">98.9%</div><div class="stat-label">Accuracy</div></div>
+        <div class="stat-card" style="padding:12px"><div class="stat-value" style="font-size:28px">98.6%</div><div class="stat-label">Precision</div></div>
+        <div class="stat-card" style="padding:12px"><div class="stat-value" style="font-size:28px">99.1%</div><div class="stat-label">Recall</div></div>
+        <div class="stat-card" style="padding:12px"><div class="stat-value" style="font-size:28px">98.8%</div><div class="stat-label">F1-Score</div></div>
+      </div>
+      <div style="margin-top:12px;font-size:11px;color:var(--text-dim)">Tree-based models excel on structured/tabular PE features</div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 12: Models - BERT -->
+<div class="slide" data-notes="<strong>Viva Tip:</strong> BERT is the obvious choice for phishing because it understands language context. Fine-tuning BERT on email text captures subtle phishing cues that keyword-based methods miss.">
+  <div class="section-label animate-in">11 — Models Used</div>
+  <h2 class="slide-title animate-in delay-1">BERT for Phishing Detection</h2>
+  <p class="slide-subtitle animate-in delay-2">Fine-tuned BERT-base model for classifying phishing vs legitimate emails</p>
+  <div class="grid-2 animate-in delay-3" style="max-width:1000px;align-items:start">
+    <div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">Fine-Tuning Setup</div>
+        <div class="card-text" style="line-height:2">
+          🔹 Base Model: bert-base-uncased<br>
+          🔹 Max Sequence Length: 512 tokens<br>
+          🔹 Batch Size: 16<br>
+          🔹 Learning Rate: 2e-5<br>
+          🔹 Epochs: 4<br>
+          🔹 Warmup Steps: 500<br>
+          🔹 Classifier: Dense + Softmax (2 classes)
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <span class="tag tag-purple">Dataset: Phishing Email</span>
+        <span class="tag tag-green">NLP Classification</span>
+      </div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">Baseline Performance (Clean Data)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="stat-card" style="padding:12px"><div class="stat-value" style="font-size:28px">96.4%</div><div class="stat-label">Accuracy</div></div>
+        <div class="stat-card" style="padding:12px"><div class="stat-value" style="font-size:28px">95.8%</div><div class="stat-label">Precision</div></div>
+        <div class="stat-card" style="padding:12px"><div class="stat-value" style="font-size:28px">96.9%</div><div class="stat-label">Recall</div></div>
+        <div class="stat-card" style="padding:12px"><div class="stat-value" style="font-size:28px">96.3%</div><div class="stat-label">F1-Score</div></div>
+      </div>
+      <div style="margin-top:12px;font-size:11px;color:var(--text-dim)">BERT captures contextual nuances in phishing language patterns</div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 13: Adversarial Attacks -->
+<div class="slide" data-notes="<strong>Viva Tip:</strong> This is a key slide. Explain each attack simply: FGSM is fast and simple, PGD is stronger iterative version, CW is optimization-based, DeepFool finds minimal perturbation, GAN generates realistic adversarial samples.">
+  <div class="section-label animate-in">12 — Adversarial Attacks</div>
+  <h2 class="slide-title animate-in delay-1">Attack Methods</h2>
+  <p class="slide-subtitle animate-in delay-2">Five adversarial attack strategies evaluated across all three cybersecurity domains</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;width:100%;max-width:1100px" class="animate-in delay-3">
+    <div class="attack-card fgsm">
+      <div class="attack-name">FGSM</div>
+      <div class="attack-formula">x' = x + ε·sign(∇x L)</div>
+      <div class="attack-desc">Fast Single-Step Attack. Adds perturbation in gradient direction. Quick to generate, easy to implement, effective baseline attack.</div>
+    </div>
+    <div class="attack-card pgd">
+      <div class="attack-name">PGD</div>
+      <div class="attack-formula">x(t+1) = Π(x(t)+α·sign(∇L))</div>
+      <div class="attack-desc">Projected Gradient Descent. Multi-step iterative attack. Stronger than FGSM — finds worst-case perturbation within ε-ball.</div>
+    </div>
+    <div class="attack-card cw">
+      <div class="attack-name">C&W Attack</div>
+      <div class="attack-formula">min ‖δ‖ + c·f(x+δ)</div>
+      <div class="attack-desc">Carlini & Wagner. Optimization-based. Minimizes perturbation while maximizing misclassification. Defeats defensive distillation.</div>
+    </div>
+    <div class="attack-card df">
+      <div class="attack-name">DeepFool</div>
+      <div class="attack-formula">min ‖r‖ s.t. f(x+r)≠f(x)</div>
+      <div class="attack-desc">Finds minimal perturbation to cross decision boundary. Very efficient — generates least noticeable adversarial examples.</div>
+    </div>
+    <div class="attack-card gan">
+      <div class="attack-name">GAN-Based</div>
+      <div class="attack-formula">G(z) → adversarial sample</div>
+      <div class="attack-desc">Generative Adversarial Network produces realistic adversarial examples. Generator creates attacks, discriminator improves quality.</div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 14: Defense Mechanisms -->
+<div class="slide" data-notes="<strong>Viva Tip:</strong> For each defense, explain the core idea simply. Then emphasize Dynamic Defense Rotation as your novel contribution — it's like changing locks constantly so attackers can't find the right key.">
+  <div class="section-label animate-in">13 — Defense Mechanisms</div>
+  <h2 class="slide-title animate-in delay-1">Defense Strategies</h2>
+  <p class="slide-subtitle animate-in delay-2">Four defense mechanisms evaluated, including our proposed Dynamic Defense Rotation</p>
+  <div class="grid-2 animate-in delay-3" style="max-width:1050px">
+    <div class="defense-card">
+      <div class="defense-icon">💪</div>
+      <div class="defense-title">Adversarial Training</div>
+      <div class="defense-desc">Train models on adversarial examples alongside clean data. The model learns to classify correctly even when inputs are perturbed. Most popular defense but computationally expensive.</div>
+    </div>
+    <div class="defense-card">
+      <div class="defense-icon">🗜️</div>
+      <div class="defense-title">Feature Squeezing</div>
+      <div class="defense-desc">Reduce the search space available to attackers by squeezing input features. Uses bit-depth reduction and spatial smoothing to remove adversarial perturbations while preserving legitimate patterns.</div>
+    </div>
+    <div class="defense-card">
+      <div class="defense-icon">🎭</div>
+      <div class="defense-title">Gradient Masking</div>
+      <div class="defense-desc">Hide gradient information from attackers so they cannot compute effective perturbations. Uses gradient clipping and output smoothing. Effective against white-box attacks but can be bypassed.</div>
+    </div>
+    <div class="defense-card" style="border-color:rgba(16,185,129,0.3);box-shadow:0 0 20px rgba(16,185,129,0.08)">
+      <div class="defense-icon" style="background:rgba(16,185,129,0.15)">🔄</div>
+      <div class="defense-title">Dynamic Defense Rotation <span class="tag tag-green" style="font-size:10px;margin-left:6px">PROPOSED</span></div>
+      <div class="defense-desc">Rotate between multiple defense strategies dynamically based on detected attack type. Adapts in real-time — if one defense is being bypassed, the system switches to another. Prevents attackers from finding a fixed weakness.</div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 15: Experimental Setup -->
+<div class="slide" data-notes="<strong>Viva Tip:</strong> Keep this brief — just mention the hardware and key tools. Faculty might ask about training time — mention that BERT took longest due to fine-tuning, while XGBoost was fastest.">
+  <div class="section-label animate-in">14 — Experimental Setup</div>
+  <h2 class="slide-title animate-in delay-1">Setup & Configuration</h2>
+  <p class="slide-subtitle animate-in delay-2">Hardware, software, and hyperparameter details for reproducibility</p>
+  <div class="grid-2 animate-in delay-3" style="max-width:1000px">
+    <div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">🖥️ Hardware</div>
+        <div class="card-text" style="line-height:2">
+          • Processor: Intel Core i7-12700H<br>
+          • RAM: 16 GB DDR5<br>
+          • GPU: NVIDIA RTX 3060 (6GB VRAM)<br>
+          • Storage: 512 GB NVMe SSD
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">🧰 Software & Tools</div>
+        <div class="card-text" style="line-height:2">
+          • Python 3.10, TensorFlow 2.12<br>
+          • PyTorch 2.0, HuggingFace Transformers<br>
+          • Adversarial Robustness Toolbox (ART)<br>
+          • Scikit-learn, XGBoost, Flask<br>
+          • matplotlib, seaborn for visualization
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">⚙️ Hyperparameters</div>
+        <div class="card-text" style="line-height:2">
+          • FGSM epsilon: 0.01 – 0.3<br>
+          • PGD steps: 40, step size: 0.01<br>
+          • C&W confidence: 0.0 – 50.0<br>
+          • Adversarial training ratio: 1:1<br>
+          • Feature squeezing bits: 4, 8<br>
+          • Defense rotation interval: 5 epochs
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📊 Training Process</div>
+        <div class="card-text" style="line-height:2">
+          • Phase 1: Baseline model training<br>
+          • Phase 2: Adversarial example generation<br>
+          • Phase 3: Defense mechanism training<br>
+          • Phase 4: Robustness evaluation<br>
+          • Phase 5: Web application integration
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 16: Baseline Results -->
+<div class="slide" data-notes="<strong>Viva Tip:</strong> Point to the chart — all three models perform well on clean data. XGBoost on EMBER is the strongest. This sets the baseline before we show how attacks degrade performance.">
+  <div class="section-label animate-in">15 — Results</div>
+  <h2 class="slide-title animate-in delay-1">Baseline Performance</h2>
+  <p class="slide-subtitle animate-in delay-2">Model performance on clean, unmodified test data — before any adversarial attacks</p>
+  <div class="animate-in delay-3" style="width:100%;max-width:850px">
+    <div class="chart-container">
+      <canvas id="baselineChart"></canvas>
+    </div>
+  </div>
+  <div class="animate-in delay-4" style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
+    <span class="tag tag-green">✅ All models achieve >96% accuracy on clean data</span>
+    <span class="tag tag-blue">XGBoost performs best on structured malware features</span>
+  </div>
+</div>
+
+<!-- SLIDE 17: Attack Results -->
+<div class="slide" data-notes="<strong>Viva Tip:</strong> This is the most important result slide. Show how each attack degrades accuracy. CW and PGD are the most devastating. This proves the vulnerability problem.">
+  <div class="section-label animate-in">16 — Attack Analysis</div>
+  <h2 class="slide-title animate-in delay-1">Impact of Adversarial Attacks</h2>
+  <p class="slide-subtitle animate-in delay-2">Accuracy degradation under different adversarial attack methods across all domains</p>
+  <div class="animate-in delay-3" style="width:100%;max-width:850px">
+    <div class="chart-container">
+      <canvas id="attackChart"></canvas>
+    </div>
+  </div>
+  <div class="animate-in delay-4" style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+    <span class="tag tag-red">⚠️ CW Attack causes up to 68% accuracy drop</span>
+    <span class="tag tag-red">PGD reduces accuracy by 40-55%</span>
+    <span class="tag tag-purple">BERT is most resilient to text attacks</span>
+  </div>
+</div>
+
+<!-- SLIDE 18: Defense Performance -->
+<div class="slide" data-notes="<strong>Viva Tip:</strong> Show the before/after comparison. Dynamic Defense Rotation is the star — it recovers the most accuracy. Adversarial training is good but expensive. Feature squeezing is lightweight but less effective.">
+  <div class="section-label animate-in">17 — Defense Results</div>
+  <h2 class="slide-title animate-in delay-1">Defense Performance Comparison</h2>
+  <p class="slide-subtitle animate-in delay-2">Accuracy recovery after applying defense mechanisms against PGD attacks</p>
+  <div class="animate-in delay-3" style="width:100%;max-width:850px">
+    <div class="chart-container">
+      <canvas id="defenseChart"></canvas>
+    </div>
+  </div>
+  <div class="highlight-box animate-in delay-4" style="margin-top:20px">
+    <p><strong>Dynamic Defense Rotation</strong> outperforms all static defenses — recovering accuracy by <strong>25-35%</strong> compared to no defense. Its adaptive nature makes it significantly harder for attackers to find a consistent exploit.</p>
+  </div>
+</div>
+
+<!-- SLIDE 19: Comparative Analysis -->
+<div class="slide" data-notes="<strong>Viva Tip:</strong> Walk through the table. Point out that attacks are domain-agnostic — they work across IDS, malware, and phishing. But defenses need domain-specific tuning. DDR works well across all domains.">
+  <div class="section-label animate-in">18 — Comparative Analysis</div>
+  <h2 class="slide-title animate-in delay-1">Cross-Domain Comparison</h2>
+  <p class="slide-subtitle animate-in delay-2">How attacks and defenses perform across different cybersecurity domains</p>
+  <div class="animate-in delay-3" style="width:100%;max-width:1100px;overflow-x:auto">
+    <table class="data-table">
+      <thead>
+        <tr><th>Attack →</th><th>FGSM</th><th>PGD</th><th>C&W</th><th>DeepFool</th><th>GAN</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>CNN (IDS)</td><td style="color:#f87171">-22%</td><td style="color:#ef4444">-41%</td><td style="color:#dc2626;font-weight:700">-68%</td><td style="color:#f87171">-28%</td><td style="color:#f97316">-35%</td></tr>
+        <tr><td>XGBoost (Malware)</td><td style="color:#f87171">-18%</td><td style="color:#ef4444">-38%</td><td style="color:#dc2626;font-weight:700">-62%</td><td style="color:#f87171">-25%</td><td style="color:#f97316">-31%</td></tr>
+        <tr><td>BERT (Phishing)</td><td style="color:#f97316">-12%</td><td style="color:#f87171">-28%</td><td style="color:#ef4444">-45%</td><td style="color:#f97316">-15%</td><td style="color:#f87171">-22%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div style="margin-top:24px" class="animate-in delay-4"></div>
+  <div class="animate-in delay-4" style="width:100%;max-width:1100px;overflow-x:auto">
+    <table class="data-table">
+      <thead>
+        <tr><th>Defense →</th><th>Adversarial Training</th><th>Feature Squeezing</th><th>Gradient Masking</th><th style="color:#34d399">Dynamic Defense Rotation</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>CNN (IDS)</td><td>+18%</td><td>+12%</td><td>+9%</td><td style="color:#34d399;font-weight:700">+28%</td></tr>
+        <tr><td>XGBoost (Malware)</td><td>+20%</td><td>+14%</td><td>+11%</td><td style="color:#34d399;font-weight:700">+32%</td></tr>
+        <tr><td>BERT (Phishing)</td><td>+14%</td><td>+8%</td><td>+7%</td><td style="color:#34d399;font-weight:700">+25%</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- SLIDE 20: Web Application -->
+<div class="slide" data-notes="<strong>Viva Tip:</strong> Show the web app demo if possible. Highlight the adversarial demo mode — it lets users see how attacks affect predictions in real time. This makes the project practical, not just theoretical.">
+  <div class="section-label animate-in">19 — Web Application</div>
+  <h2 class="slide-title animate-in delay-1">Web-Based Security Platform</h2>
+  <p class="slide-subtitle animate-in delay-2">Interactive web application for threat prediction with adversarial demo capabilities</p>
+  <div class="grid-2 animate-in delay-3" style="max-width:1050px;align-items:start">
+    <div>
+      <div class="mockup-frame">
+        <div class="mockup-topbar">
+          <div class="mockup-dot" style="background:#ef4444"></div>
+          <div class="mockup-dot" style="background:#eab308"></div>
+          <div class="mockup-dot" style="background:#22c55e"></div>
+          <span style="margin-left:12px;font-size:11px;color:var(--text-dim)">Adversarial Defense Platform</span>
+        </div>
+        <div class="mockup-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+            <div style="background:rgba(6,182,212,0.08);border:1px dashed rgba(6,182,212,0.2);border-radius:8px;padding:20px;text-align:center;font-size:12px;color:var(--text-secondary)">
+              📤 Upload / Input<br><span style="font-size:10px;color:var(--text-dim)">PCAP, PE, Email</span>
+            </div>
+            <div style="background:rgba(16,185,129,0.08);border:1px dashed rgba(16,185,129,0.2);border-radius:8px;padding:20px;text-align:center;font-size:12px;color:var(--text-secondary)">
+              🔍 Prediction<br><span style="font-size:10px;color:var(--text-dim)">Threat Classification</span>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div style="background:rgba(239,68,68,0.08);border:1px dashed rgba(239,68,68,0.2);border-radius:8px;padding:20px;text-align:center;font-size:12px;color:var(--text-secondary)">
+              ⚡ Adversarial Demo<br><span style="font-size:10px;color:var(--text-dim)">See attacks in action</span>
+            </div>
+            <div style="background:rgba(139,92,246,0.08);border:1px dashed rgba(139,92,246,0.2);border-radius:8px;padding:20px;text-align:center;font-size:12px;color:var(--text-secondary)">
+              📊 Confidence Viz<br><span style="font-size:10px;color:var(--text-dim)">Real-time scores</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-title">📤 Upload & Predict</div>
+        <div class="card-text">Upload network captures, PE files, or email text. The system auto-detects the domain and routes to the appropriate model for real-time threat classification.</div>
+      </div>
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-title">⚡ Adversarial Demo Mode</div>
+        <div class="card-text">Select an attack type and epsilon value to see how adversarial perturbations affect the model's prediction in real-time. Visualize the confidence score drop.</div>
+      </div>
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-title">🛡️ Defense Deployment</div>
+        <div class="card-text">Activate defense mechanisms on demand. Compare prediction accuracy with and without defense. Dynamic Defense Rotation activates automatically.</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <span class="tag tag-cyan">Flask Backend</span>
+        <span class="tag tag-blue">React Frontend</span>
+        <span class="tag tag-green">REST API</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 21: Key Findings -->
+<div class="slide" data-notes="<strong>Viva Tip:</strong> Summarize the main takeaways. The key message: ML works great but is fragile under attack, and adaptive defenses are the way forward.">
+  <div class="section-label animate-in">20 — Key Findings</div>
+  <h2 class="slide-title animate-in delay-1">Key Findings</h2>
+  <p class="slide-subtitle animate-in delay-2">Major insights from our experimental evaluation</p>
+  <div class="grid-2 animate-in delay-3" style="max-width:950px">
+    <div class="card" style="display:flex;gap:14px;align-items:flex-start">
+      <span style="font-size:28px;flex-shrink:0">✅</span>
+      <div><div class="card-title">High Baseline Accuracy</div><div class="card-text">All three models (CNN, XGBoost, BERT) achieve over 96% accuracy on clean data, confirming ML's effectiveness for cybersecurity under normal conditions.</div></div>
+    </div>
+    <div class="card" style="display:flex;gap:14px;align-items:flex-start">
+      <span style="font-size:28px;flex-shrink:0">⚠️</span>
+      <div><div class="card-title">Significant Vulnerability</div><div class="card-text">Adversarial attacks cause 15-68% accuracy drops. C&W and PGD attacks are most devastating. Even simple FGSM can reduce accuracy by over 20%.</div></div>
+    </div>
+    <div class="card" style="display:flex;gap:14px;align-items:flex-start">
+      <span style="font-size:28px;flex-shrink:0">🔄</span>
+      <div><div class="card-title">Static Defenses Are Insufficient</div><div class="card-text">Single defense strategies like gradient masking or feature squeezing only partially recover accuracy and can be bypassed by adaptive attackers.</div></div>
+    </div>
+    <div class="card" style="display:flex;gap:14px;align-items:flex-start">
+      <span style="font-size:28px;flex-shrink:0">🛡️</span>
+      <div><div class="card-title">Dynamic Defense Is Most Effective</div><div class="card-text">Dynamic Defense Rotation consistently outperforms all static defenses across all three domains, recovering up to 32% accuracy by adapting to attack patterns.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 22: Limitations -->
+<div class="slide" data-notes="<strong>Viva Tip:</strong> Be honest about limitations — faculty appreciate this. White-box assumption is the biggest one. Computational cost of adversarial training is also a real practical concern.">
+  <div class="section-label animate-in">21 — Limitations</div>
+  <h2 class="slide-title animate-in delay-1">Limitations</h2>
+  <p class="slide-subtitle animate-in delay-2">Acknowledging the boundaries of our current work</p>
+  <div class="grid-2 animate-in delay-3" style="max-width:900px">
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="font-size:20px">🗄️</span>
+        <div class="card-title" style="margin:0">Benchmark Datasets Only</div>
+      </div>
+      <div class="card-text">Evaluation was conducted on standard benchmark datasets. Real-world network traffic and zero-day malware may exhibit different characteristics and attack surfaces.</div>
+    </div>
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="font-size:20px">🔒</span>
+        <div class="card-title" style="margin:0">Limited Defense Mechanisms</div>
+      </div>
+      <div class="card-text">Only four defense strategies were evaluated. Emerging defenses like certified robustness, randomized smoothing, and provable defenses were not included in this study.</div>
+    </div>
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="font-size:20px">👁️</span>
+        <div class="card-title" style="margin:0">White-Box Focus</div>
+      </div>
+      <div class="card-text">Primary evaluation assumes white-box access to model internals. Black-box and gray-box attack scenarios were partially explored but need deeper investigation.</div>
+    </div>
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="font-size:20px">💻</span>
+        <div class="card-title" style="margin:0">Computational Cost</div>
+      </div>
+      <div class="card-text">Adversarial training and dynamic defense rotation significantly increase training and inference time. Deployment in real-time low-latency environments remains challenging.</div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 23: Future Scope -->
+<div class="slide" data-notes="<strong>Viva Tip:</strong> Future scope should sound achievable. Certified defenses are a hot research area. Explainable AI for understanding WHY attacks work is very relevant. Real-time deployment is the ultimate goal.">
+  <div class="section-label animate-in">22 — Future Scope</div>
+  <h2 class="slide-title animate-in delay-1">Future Directions</h2>
+  <p class="slide-subtitle animate-in delay-2">Potential extensions and improvements for building on this research</p>
+  <div class="grid-3 animate-in delay-3" style="max-width:1050px">
+    <div class="card" style="text-align:center">
+      <div style="font-size:36px;margin-bottom:12px">🏆</div>
+      <div class="card-title">Certified Defenses</div>
+      <div class="card-text">Implement mathematically provable robustness guarantees with randomized smoothing and interval bound propagation for guaranteed accuracy under bounded perturbations.</div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div style="font-size:36px;margin-bottom:12px">⚡</div>
+      <div class="card-title">Real-Time Adaptive Security</div>
+      <div class="card-text">Deploy dynamic defense rotation in real-time production environments with online learning capabilities to adapt to evolving adversarial strategies continuously.</div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div style="font-size:36px;margin-bottom:12px">💡</div>
+      <div class="card-title">Explainable AI</div>
+      <div class="card-text">Integrate SHAP and LIME for interpretable adversarial detection — understand WHY models are vulnerable and which features attackers exploit most.</div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div style="font-size:36px;margin-bottom:12px">🔄</div>
+      <div class="card-title">Transfer Learning</div>
+      <div class="card-text">Study cross-domain adversarial transferability — can attacks trained on IDS data fool malware detectors? Build cross-domain robustness using transfer learning.</div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div style="font-size:36px;margin-bottom:12px">🌍</div>
+      <div class="card-title">Real-World Deployment</div>
+      <div class="card-text">Deploy the web platform in enterprise security operations centers with real network traffic, integrating with existing SIEM systems for live adversarial monitoring.</div>
+    </div>
+    <div class="card" style="text-align:center">
+      <div style="font-size:36px;margin-bottom:12px">🤖</div>
+      <div class="card-title">AutoML for Robustness</div>
+      <div class="card-text">Automated search for optimal defense configurations per domain. Neural architecture search for inherently robust model architectures in cybersecurity.</div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 24: Conclusion -->
+<div class="slide" data-notes="<strong>Viva Tip:</strong> Deliver this with confidence. This is your closing statement. Emphasize that the project proves the problem is real AND offers a working solution. End on a strong note.">
+  <div class="section-label animate-in">23 — Conclusion</div>
+  <h2 class="slide-title animate-in delay-1">Conclusion</h2>
+  <div class="highlight-box animate-in delay-2" style="max-width:850px;text-align:left;padding:32px 40px">
+    <p style="font-size:15px;line-height:2">
+      This project successfully demonstrates that although machine learning provides powerful cybersecurity capabilities, <strong>adversarial attacks remain a major challenge</strong>. Our experiments across three domains — intrusion detection, malware classification, and phishing detection — show that models achieving over 96% accuracy on clean data can suffer accuracy drops of <strong>up to 68%</strong> under adversarial attack.
+      <br><br>
+      The proposed <strong>Dynamic Defense Rotation</strong> mechanism significantly improves robustness compared to static defenses, recovering up to 32% accuracy by adapting its strategy based on detected attack patterns. This highlights the importance of <strong>adaptive AI security systems</strong> for future cyber defense.
+      <br><br>
+      Our work underscores a critical message: <strong>deploying ML in security without adversarial robustness is a liability</strong>. As AI-driven attacks grow more sophisticated, our defenses must evolve dynamically to keep pace.
+    </p>
+  </div>
+  <div class="animate-in delay-3" style="margin-top:24px;display:flex;gap:16px;flex-wrap:wrap;justify-content:center">
+    <div style="text-align:center;padding:16px 24px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px">
+      <div class="stat-value" style="font-size:24px">96%+</div>
+      <div class="stat-label">Clean Data Accuracy</div>
+    </div>
+    <div style="text-align:center;padding:16px 24px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px">
+      <div class="stat-value" style="font-size:24px;color:#f87171">68%</div>
+      <div class="stat-label">Max Accuracy Drop</div>
+    </div>
+    <div style="text-align:center;padding:16px 24px;background:var(--bg-card);border:1px solid rgba(16,185,129,0.2);border-radius:12px">
+      <div class="stat-value" style="font-size:24px;color:#34d399">+32%</div>
+      <div class="stat-label">Best Defense Recovery</div>
+    </div>
+    <div style="text-align:center;padding:16px 24px;background:var(--bg-card);border:1px solid rgba(139,92,246,0.2);border-radius:12px">
+      <div class="stat-value" style="font-size:24px;color:#a78bfa">3</div>
+      <div class="stat-label">Domains Covered</div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 25: Thank You -->
+<div class="slide" data-notes="<strong>Viva Tip:</strong> Thank the panel sincerely. Invite questions confidently. Remember: you know this project better than anyone in the room.">
+  <div style="text-align:center;max-width:700px">
+    <div style="font-size:72px;margin-bottom:24px" class="animate-in">🛡️</div>
+    <h1 class="slide-title animate-in delay-1" style="font-size:clamp(36px,5vw,64px);margin-bottom:20px">Thank You</h1>
+    <p class="slide-subtitle animate-in delay-2" style="font-size:20px;color:var(--text-secondary);margin-bottom:40px">Questions & Discussion</p>
+    <div class="animate-in delay-3" style="font-size:14px;color:var(--text-secondary);line-height:2.2">
+      <div><strong style="color:var(--text-primary)">Arjun Mehta</strong> &bull; Sneha Reddy &bull; Rahul Verma</div>
+      <div>Guide: <strong style="color:var(--text-primary)">Dr. Kavita Sharma</strong></div>
+      <div style="margin-top:12px;color:var(--accent)">Department of Computer Science & Engineering</div>
+      <div>National Institute of Technology, Delhi</div>
+    </div>
+    <div class="animate-in delay-4" style="margin-top:32px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <span class="tag tag-cyan">Adversarial ML</span>
+      <span class="tag tag-blue">Cybersecurity</span>
+      <span class="tag tag-purple">Dynamic Defense</span>
+      <span class="tag tag-green">Robust AI</span>
+    </div>
+  </div>
+</div>
+
+</div><!-- end pres-container -->
+
+<script>
+// ==================== SLIDE NAVIGATION ====================
+let currentSlide = 0;
+const slides = document.querySelectorAll('.slide');
+const totalSlides = slides.length;
+
+function updateSlide() {
+  slides.forEach((s, i) => {
+    s.classList.remove('active', 'exit-left');
+    if (i === currentSlide) {
+      s.classList.add('active');
+      // Re-trigger animations
+      s.querySelectorAll('.animate-in').forEach(el => {
+        el.style.animation = 'none';
+        el.offsetHeight;
+        el.style.animation = '';
+      });
+    } else if (i < currentSlide) {
+      s.classList.add('exit-left');
+    }
+  });
+  document.getElementById('slideCounter').textContent = 
+    String(currentSlide + 1).padStart(2, '0') + ' / ' + String(totalSlides).padStart(2, '0');
+  document.getElementById('progressBar').style.width = ((currentSlide + 1) / totalSlides * 100) + '%';
+  updateNotes();
+  initChartsForSlide();
+}
+
+function changeSlide(dir) {
+  const next = currentSlide + dir;
+  if (next >= 0 && next < totalSlides) {
+    currentSlide = next;
+    updateSlide();
+  }
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); changeSlide(1); }
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); changeSlide(-1); }
+  if (e.key === 'n' || e.key === 'N') toggleNotes();
+  if (e.key === 'Home') { currentSlide = 0; updateSlide(); }
+  if (e.key === 'End') { currentSlide = totalSlides - 1; updateSlide(); }
+});
+
+// Touch navigation
+let touchStartX = 0;
+document.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; });
+document.addEventListener('touchend', e => {
+  const diff = touchStartX - e.changedTouches[0].screenX;
+  if (Math.abs(diff) > 50) changeSlide(diff > 0 ? 1 : -1);
+});
+
+// ==================== NOTES ====================
+function toggleNotes() {
+  document.getElementById('notesPanel').classList.toggle('visible');
+}
+function updateNotes() {
+  const notes = slides[currentSlide].getAttribute('data-notes') || '<strong>No notes for this slide.</strong>';
+  document.getElementById('notesPanel').innerHTML = notes;
+}
+
+// ==================== CHARTS ====================
+let chartsInitialized = {};
+
+function initChartsForSlide() {
+  if (currentSlide === 15 && !chartsInitialized[15]) {
+    chartsInitialized[15] = true;
+    setTimeout(() => initBaselineChart(), 200);
+  }
+  if (currentSlide === 16 && !chartsInitialized[16]) {
+    chartsInitialized[16] = true;
+    setTimeout(() => initAttackChart(), 200);
+  }
+  if (currentSlide === 17 && !chartsInitialized[17]) {
+    chartsInitialized[17] = true;
+    setTimeout(() => initDefenseChart(), 200);
+  }
+}
+
+const chartDefaults = {
+  responsive: true,
+  maintainAspectRatio: true,
+  plugins: {
+    legend: { labels: { color: '#94a3b8', font: { family: 'Manrope', size: 12 }, padding: 16, usePointStyle: true, pointStyleWidth: 10 } }
+  },
+  scales: {
+    x: { ticks: { color: '#64748b', font: { family: 'Manrope', size: 11 } }, grid: { color: 'rgba(255,255,255,0.03)' }, border: { color: 'rgba(255,255,255,0.06)' } },
+    y: { ticks: { color: '#64748b', font: { family: 'Manrope', size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' }, border: { color: 'rgba(255,255,255,0.06)' }, min: 0, max: 100 }
+  }
+};
+
+function initBaselineChart() {
+  new Chart(document.getElementById('baselineChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Accuracy', 'Precision', 'Recall', 'F1-Score', 'ROC-AUC'],
+      datasets: [
+        { label: 'CNN (IDS)', data: [97.8, 96.5, 97.1, 96.8, 98.2], backgroundColor: 'rgba(6,182,212,0.7)', borderColor: 'rgba(6,182,212,1)', borderWidth: 1, borderRadius: 4 },
+        { label: 'XGBoost (Malware)', data: [98.9, 98.6, 99.1, 98.8, 99.3], backgroundColor: 'rgba(59,130,246,0.7)', borderColor: 'rgba(59,130,246,1)', borderWidth: 1, borderRadius: 4 },
+        { label: 'BERT (Phishing)', data: [96.4, 95.8, 96.9, 96.3, 97.1], backgroundColor: 'rgba(139,92,246,0.7)', borderColor: 'rgba(139,92,246,1)', borderWidth: 1, borderRadius: 4 }
+      ]
+    },
+    options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, title: { display: true, text: 'Baseline Model Performance on Clean Data (%)', color: '#f1f5f9', font: { family: 'Manrope', size: 14, weight: 600 } } } }
+  });
+}
+
+function initAttackChart() {
+  new Chart(document.getElementById('attackChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Clean', 'FGSM', 'PGD', 'C&W', 'DeepFool', 'GAN'],
+      datasets: [
+        { label: 'CNN (IDS)', data: [97.8, 75.8, 56.8, 29.8, 69.8, 62.8], backgroundColor: 'rgba(6,182,212,0.7)', borderColor: 'rgba(6,182,212,1)', borderWidth: 1, borderRadius: 4 },
+        { label: 'XGBoost (Malware)', data: [98.9, 80.9, 60.9, 36.9, 73.9, 67.9], backgroundColor: 'rgba(59,130,246,0.7)', borderColor: 'rgba(59,130,246,1)', borderWidth: 1, borderRadius: 4 },
+        { label: 'BERT (Phishing)', data: [96.4, 84.4, 68.4, 51.4, 81.4, 74.4], backgroundColor: 'rgba(139,92,246,0.7)', borderColor: 'rgba(139,92,246,1)', borderWidth: 1, borderRadius: 4 }
+      ]
+    },
+    options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, title: { display: true, text: 'Accuracy Under Adversarial Attacks (%)', color: '#f1f5f9', font: { family: 'Manrope', size: 14, weight: 600 } } } }
+  });
+}
+
+function initDefenseChart() {
+  new Chart(document.getElementById('defenseChart'), {
+    type: 'bar',
+    data: {
+      labels: ['No Defense', 'Adv. Training', 'Feature Squeeze', 'Grad. Masking', 'DDR (Ours)'],
+      datasets: [
+        { label: 'CNN (IDS)', data: [56.8, 74.8, 68.8, 65.8, 84.8], backgroundColor: ['rgba(239,68,68,0.6)', 'rgba(6,182,212,0.6)', 'rgba(59,130,246,0.6)', 'rgba(139,92,246,0.6)', 'rgba(16,185,129,0.8)'], borderColor: ['rgba(239,68,68,1)', 'rgba(6,182,212,1)', 'rgba(59,130,246,1)', 'rgba(139,92,246,1)', 'rgba(16,185,129,1)'], borderWidth: 1, borderRadius: 4 },
+        { label: 'XGBoost (Malware)', data: [60.9, 80.9, 74.9, 71.9, 92.9], backgroundColor: ['rgba(239,68,68,0.4)', 'rgba(6,182,212,0.4)', 'rgba(59,130,246,0.4)', 'rgba(139,92,246,0.4)', 'rgba(16,185,129,0.6)'], borderColor: ['rgba(239,68,68,0.8)', 'rgba(6,182,212,0.8)', 'rgba(59,130,246,0.8)', 'rgba(139,92,246,0.8)', 'rgba(16,185,129,0.9)'], borderWidth: 1, borderRadius: 4 },
+        { label: 'BERT (Phishing)', data: [68.4, 82.4, 76.4, 75.4, 93.4], backgroundColor: ['rgba(239,68,68,0.25)', 'rgba(6,182,212,0.25)', 'rgba(59,130,246,0.25)', 'rgba(139,92,246,0.25)', 'rgba(16,185,129,0.45)'], borderColor: ['rgba(239,68,68,0.6)', 'rgba(6,182,212,0.6)', 'rgba(59,130,246,0.6)', 'rgba(139,92,246,0.6)', 'rgba(16,185,129,0.7)'], borderWidth: 1, borderRadius: 4 }
+      ]
+    },
+    options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, title: { display: true, text: 'Accuracy Recovery Under PGD Attack With Defenses (%)', color: '#f1f5f9', font: { family: 'Manrope', size: 14, weight: 600 } } } }
+  });
+}
+
+// ==================== NETWORK BACKGROUND ====================
+const canvas = document.getElementById('bgCanvas');
+const ctx = canvas.getContext('2d');
+let nodes = [];
+const NODE_COUNT = 60;
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+
+function initNodes() {
+  nodes = [];
+  for (let i = 0; i < NODE_COUNT; i++) {
+    nodes.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.4,
+      vy: (Math.random() - 0.5) * 0.4,
+      r: Math.random() * 1.5 + 0.5
+    });
+  }
+}
+
+function drawNetwork() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // Draw connections
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      const dx = nodes[i].x - nodes[j].x;
+      const dy = nodes[i].y - nodes[j].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 180) {
+        ctx.beginPath();
+        ctx.moveTo(nodes[i].x, nodes[i].y);
+        ctx.lineTo(nodes[j].x, nodes[j].y);
+        const alpha = (1 - dist / 180) * 0.12;
+        ctx.strokeStyle = `rgba(6,182,212,${alpha})`;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      }
+    }
+  }
+  
+  // Draw nodes
+  for (let n of nodes) {
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(6,182,212,0.25)';
+    ctx.fill();
+    
+    // Move
+    n.x += n.vx;
+    n.y += n.vy;
+    if (n.x < 0 || n.x > canvas.width) n.vx *= -1;
+    if (n.y < 0 || n.y > canvas.height) n.vy *= -1;
+  }
+  
+  requestAnimationFrame(drawNetwork);
+}
+
+window.addEventListener('resize', () => { resizeCanvas(); initNodes(); });
+resizeCanvas();
+initNodes();
+drawNetwork();
+
+// Initialize
+updateSlide();
+</script>
+</body>
+</html>
